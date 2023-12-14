@@ -1,0 +1,11 @@
+{
+  "name": "fetch-factory",
+  "version": "1.0.0",
+  "description": "Le code fourni est écrit en TypeScript et définit une fonction **`FetchFactory`** qui crée une fonction de requête HTTP réutilisable. Permettez-moi de fournir un commentaire détaillé sur chaque partie du code :",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}

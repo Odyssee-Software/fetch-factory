@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "module": "CommonJS",
+    "target": "ES2016",
+    "declaration": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "removeComments": false,
+    "preserveConstEnums" : true,
+    "skipLibCheck": true,
+    "moduleResolution":"node",
+    "esModuleInterop" : true,
+    "resolveJsonModule": true,
+  },
+}
