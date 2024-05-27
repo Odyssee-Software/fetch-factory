@@ -1,6 +1,8 @@
 export * from './config';
 export * from './request';
 
+export * from './batcher';
+
 /**
    * Fonction de requête HTTP réutilisable créée par FetchFactory.
    * @param endpoint - L'URL de l'endpoint à appeler.
