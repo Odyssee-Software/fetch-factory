@@ -1,49 +1,180 @@
-Le code fourni est écrit en TypeScript et définit une fonction **`FetchFactory`** qui crée une fonction de requête HTTP réutilisable. Permettez-moi de fournir un commentaire détaillé sur chaque partie du code :
+# Odyssee-Software/fetchFactory
+
+Cette bibliothèque fournit une factory de requêtes HTTP réutilisables appelée Fetch Factory, ainsi qu'un système de traitement par lots (Batcher) pour gérer l'exécution asynchrone et concurrente des contrôleurs.
+
+## **Fetch Factory**
+
+Fetch Factory permet de créer des fonctions de requête HTTP réutilisables avec des options spécifiques telles que la méthode et les en-têtes. Elle peut être utilisée pour effectuer des requêtes GET, POST, PUT, PATCH ou DELETE.
+
+### **Utilisation de Fetch Factory**
+
+Pour utiliser Fetch Factory, importez-la dans votre projet et créez des fonctions de requête pour différents types de méthodes HTTP :
 
 ```tsx
-export interface IFetchFactory{
-  caller:Function;
-  method:'GET'|'POST'|'PATCH'|'DELETE';
-  headers:Record<string,string>;
-}
+// Exemple pour Node.js
+import { FetchFactory } from '@Odyssee-Software/fetchFactory';
+import { fetch, Response } from 'node-fetch';
+
+const MyGet = FetchFactory<Response>({
+  caller: fetch,
+  method: 'GET',
+  headers: {}
+});
+
+MyGet<InputData, OutputData>(/** ...optional headers... */)(/** endpoint */, /** body */)
+.then(({ output_data }) => {
+  console.log({ output_data });
+});
 ```
-
-Cette partie définit une interface TypeScript nommée **`IFetchFactory`** qui spécifie les propriétés attendues par la fonction **`FetchFactory`**. L'interface a trois propriétés :
-
-- **`caller`** : une fonction qui sera utilisée pour effectuer la requête HTTP.
-- **`method`** : une chaîne de caractères représentant la méthode de requête HTTP (GET, POST, PATCH ou DELETE).
-- **`headers`** : un objet contenant les en-têtes HTTP à inclure dans la requête.
 
 ```tsx
-export const FetchFactory = <DATA_TYPE,RETURN_DATA_TYPE>(options:IFetchFactory):(endpoint:string , data?:DATA_TYPE) => Promise<RETURN_DATA_TYPE> => {
-  if('headers' in options == false)options.headers = {};
-  return ( endpoint:string , data?:DATA_TYPE ) => {
-    return new Promise((next,reject) => {
-      options.caller( endpoint , {
-        method : options.method,
-        headers : options.headers,
-        ...( data ? { body : data } : {} )
-      } )
-      .then(async (result) => {
-        try{
-          next( await result.json() );
-        }
-        catch(error){
-          next( await result.text() );
-        }
-      })
-      .catch(reject)
-    })
-  }
-}
+// Exemple pour le navigateur
+import { FetchFactory } from '@Odyssee-Software/fetchFactory';
+
+const MyGet = FetchFactory<Response>({
+  caller: fetch.bind(window),
+  method: 'GET',
+  headers: {}
+});
+
+MyGet<InputData, OutputData>(/** ...optional headers... */)(/** endpoint */, /** body */)
+.then(({ output_data }) => {
+  console.log({ output_data });
+});
+
 ```
 
-Cette partie définit la fonction **`FetchFactory`** qui prend des paramètres génériques **`DATA_TYPE`** et **`RETURN_DATA_TYPE`**. La fonction accepte un objet **`options`** qui correspond à l'interface **`IFetchFactory`**. Elle renvoie une fonction qui prend deux paramètres : **`endpoint`** (une chaîne de caractères représentant l'URL de la requête) et **`data`** (données à envoyer dans la requête, facultatif). La fonction retournée renvoie une promesse qui résoudra avec le type de données spécifié par **`RETURN_DATA_TYPE`**.
+### **Requêtes Prédéfinies**
 
-À l'intérieur de la fonction, il y a une vérification pour s'assurer que **`options.headers`** est défini. Si ce n'est pas le cas, il est initialisé avec un objet vide.
+Fetch Factory inclut également des fonctions de requête prédéfinies pour simplifier les opérations courantes :
 
-Ensuite, une promesse est créée avec un callback prenant les paramètres **`next`** et **`reject`**. La fonction **`options.caller`** est appelée avec **`endpoint`** et un objet contenant la méthode de la requête, les en-têtes et éventuellement les données de la requête. La réponse est ensuite traitée dans la promesse. Si la réponse peut être analysée comme JSON, elle est convertie en JSON et renvoyée via **`next`**. Sinon, elle est renvoyée sous forme de texte.
+```tsx
+import { Get, Post, Put, Patch, Delete } from '@Odyssee-Software/fetchFactory';
 
-En cas de rejet de la requête, l'erreur est rejetée via **`reject`**.
+const fetchData = async () => {
+  const responseData = await Get(/** ...optional headers... */)('/api/data');
+  console.log('Data:', responseData);
+};
+```
 
-En résumé, la fonction **`FetchFactory`** crée une fonction réutilisable pour effectuer des requêtes HTTP avec des options spécifiques telles que la méthode et les en-têtes. Cette fonction retourne une promesse qui résoudra avec les données de la réponse dans le format spécifié.
+### **Caller**
+
+Le **caller** est la fonction responsable de l'exécution des requêtes HTTP. Fetch Factory permet de spécifier n'importe quel caller compatible, comme `fetch`, `axios`, ou toute autre librairie de requêtes HTTP. Cette flexibilité est intéressante car elle permet d'utiliser Fetch Factory dans différents environnements ou de remplacer facilement la technologie sous-jacente sans modifier les appels de fonction dans le code.
+
+### **Exemple avec un caller non compatible Fetch**
+
+Supposons que vous avez une fonction `customCaller` qui ne suit pas exactement la nomenclature de `fetch`. Vous pouvez encapsuler ce caller dans une fonction qui adopte la même signature que `fetch`.
+
+```tsx
+// Exemple d'un customCaller qui ne respecte pas la nomenclature de fetch
+const customCaller = (url: string, options: any) => {
+  return new Promise((resolve, reject) => {
+    // Simuler une requête HTTP
+    setTimeout(() => {
+      resolve({ data: 'response data from customCaller' });
+    }, 1000);
+  });
+};
+
+// Fonction d'adaptation pour customCaller
+const fetchLikeCaller = (url: string, options: any) => {
+  return customCaller(url, options).then((response) => ({
+    json: () => Promise.resolve(response.data),
+  }));
+};
+
+// Utilisation avec Fetch Factory
+import { FetchFactory } from '@Odyssee-Software/fetchFactory';
+
+const MyGet = FetchFactory({
+  caller: fetchLikeCaller,
+  method: 'GET',
+  headers: {}
+});
+
+MyGet<InputData, OutputData>(/** ...optional headers... */)(/** endpoint */, /** body */)
+.then(({ output_data }) => {
+  console.log({ output_data });
+});
+
+```
+
+Dans cet exemple, `fetchLikeCaller` agit comme une interface pour `customCaller`, en transformant sa réponse pour qu'elle corresponde à la manière dont `fetch` retourne les résultats.
+
+## **Batcher**
+
+Le **Batcher** est un système de traitement par lots qui permet d'exécuter de manière asynchrone et concurrente une série de contrôleurs. Il offre un contrôle sur le niveau de concurrence, la gestion des événements de progression et de fin, ainsi que la possibilité de gérer des dépendances entre les contrôleurs avec un mécanisme de fallback.
+
+### **Utilisation de Batcher**
+
+Pour utiliser Batcher, importez-le dans votre projet et créez une instance de batcher avec une configuration éventuelle :
+
+```tsx
+import { createBatch } from '@Odyssee-Software/fetchFactory';
+
+const batch = createBatch({
+  concurrency: 4, // Niveau de concurrence
+  progress: (progress) => {
+    console.log('Progress:', progress);
+  },
+  end: (err, results) => {
+    if (err) {
+      console.error('Batch ended with error:', err);
+    } else {
+      console.log('Batch completed successfully:', results);
+    }
+  },
+});
+```
+
+Ensuite, ajoutez des contrôleurs à la file d'attente du batcher et lancez le traitement par lots :
+
+```tsx
+batch.push(async (args) => {
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  return 'Task result';
+});
+
+// Ajoutez d'autres contrôleurs...
+
+batch.start().then((results) => {
+  console.log('Batch results:', results);
+});
+```
+
+## **Fallback Resolver**
+
+Le **Fallback Resolver** est une fonctionnalité de Batcher qui permet d'encapsuler un job qui sera utilisé uniquement si un autre job échoue. Cela permet de gérer les dépendances entre les contrôleurs.
+
+### **Utilisation du Fallback Resolver**
+
+Pour utiliser le Fallback Resolver, créez une requête de fallback avec un ensemble de contrôleurs associés et leurs gestionnaires de succès, d'attente et d'erreur :
+
+```tsx
+import { BatchFallbackQuery } from '@Odyssee-Software/fetchFactory';
+
+const fallbackQuery = (args: any[]): BatchFallbackQuery<any> => {
+  return {
+    find: { id: [0] }, // Identifiants des contrôleurs associés
+    args: args, // Arguments facultatifs
+    on: {
+      success: (next, reject, result) => {
+        console.log('Fallback success:', result);
+        next(Promise.resolve('Fallback result'));
+      },
+      pending: (wait) => {
+        console.log('Fallback pending');
+        wait();
+      },
+      error: (reject) => {
+        console.log('Fallback error');
+        reject('Error occurred');
+      },
+    },
+  };
+};
+
+batch.push((args) => {
+  return batch.solver(fallbackQuery(args));
+});
+```
