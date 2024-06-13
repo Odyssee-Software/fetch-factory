@@ -9,7 +9,7 @@ export * from './batcher';
    * @param data - Les données à envoyer avec la requête (facultatif).
    * @returns Une promesse qui résout avec les données de la réponse.
 */
-export type TFetchFactory<DATA_TYPE,RETURN_DATA_TYPE> = (endpoint:string , data?:DATA_TYPE) => Promise<RETURN_DATA_TYPE>
+export type TFetchFactory = ( optionalHeaders?:HeadersInit ) => (endpoint:string , data?) => Promise<any>
 
 /**
  * Spécifie les propriétés attendues par la fonction FetchFactory pour configurer une requête HTTP.
@@ -20,7 +20,8 @@ export interface IFetchFactory{
   /** La méthode de la requête HTTP (GET, POST, PATCH ou DELETE). */
   method:'GET'|'POST'|'PUT'|'PATCH'|'DELETE';
   /** Les en-têtes de la requête HTTP. */
-  headers?:Record<string,string>;
+  headers?:HeadersInit;
+  parser?:( response ) => any;
 }
 
 /**
@@ -28,7 +29,7 @@ export interface IFetchFactory{
  * @param options - Les options de la requête HTTP, définies par l'interface IFetchFactory.
  * @returns Une fonction qui renvoie une promesse contenant les données de la réponse.
  */
-export const FetchFactory = <DATA_TYPE,RETURN_DATA_TYPE>(options:IFetchFactory):TFetchFactory<DATA_TYPE,RETURN_DATA_TYPE> => {
+export const FetchFactory = < CallerResponse extends Record< string , any > = any >(options:IFetchFactory) => {
 
   if('headers' in options == false)options.headers = {};
 
@@ -38,28 +39,35 @@ export const FetchFactory = <DATA_TYPE,RETURN_DATA_TYPE>(options:IFetchFactory):
    * @param data - Les données à envoyer avec la requête (facultatif).
    * @returns Une promesse qui résout avec les données de la réponse.
    */
-  return ( endpoint:string , data?:DATA_TYPE ) => {
+  return function< InputData extends Record<string , any> = any , OutputData = any >( optionalHeaders?:HeadersInit ){
 
-    return new Promise((next,reject) => {
-      options.caller( endpoint , {
-        method : options.method,
-        headers : ( options.headers ? options.headers : {} ),
-        ...( data ? { 
-          body : ( typeof data == 'string' ? data : JSON.stringify(data) ) 
-        } : {} )
-      } )
-      .then(async (result) => {
-        let response = await result.text();
-        try{
-          next( JSON.parse(response) );
-        }
-        catch(error){
-          next( response );
-        }
+    return ( endpoint:string , data?:InputData ):Promise< CallerResponse & { output_data?:OutputData  } > => {
+
+      return new Promise((next,reject) => {
+        options.caller( endpoint , {
+          method : options.method,
+          headers : { ...options.headers || {} , ...optionalHeaders || {} },
+          ...( data ? { 
+            body : ( typeof data == 'string' ? data : JSON.stringify(data) ) 
+          } : {} )
+        } )
+        .then(async (result:CallerResponse) => {
+
+          try{
+            if(options.parser)Object.assign( result , { output_data : await options.parser( result ) } );
+          }
+          catch(error){
+            console.error(error);
+          }
+
+          next( result );
+
+        })
+        .catch(reject)
+  
       })
-      .catch(reject)
-
-    })
+  
+    }
 
   }
 

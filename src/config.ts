@@ -11,7 +11,7 @@ export interface IFactoryConfig {
   compose: (relativePath: string) => string;
 }
 
-let { protocol , hostname } = window.location;
+let { protocol , hostname } = globalThis?.window?.location || { protocol : 'https:' , hostname : 'localhost' };
 
 export const FactoryConfig:IFactoryConfig = {
   protocol : protocol as 'http:' | 'https:',

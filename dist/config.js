@@ -1,7 +1,8 @@
 "use strict";
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.composeFromFactory = exports.getFactoryURL = exports.getFactoryPort = exports.getFactoryHostname = exports.getFactoryProtocol = exports.FactoryConfig = void 0;
-let { protocol, hostname } = window.location;
+let { protocol, hostname } = ((_a = globalThis === null || globalThis === void 0 ? void 0 : globalThis.window) === null || _a === void 0 ? void 0 : _a.location) || { protocol: 'https:', hostname: 'localhost' };
 exports.FactoryConfig = {
     protocol: protocol,
     host: hostname,

@@ -26,6 +26,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.FetchFactory = void 0;
 __exportStar(require("./config"), exports);
 __exportStar(require("./request"), exports);
+__exportStar(require("./batcher"), exports);
 /**
  * Crée une fonction réutilisable pour effectuer des requêtes HTTP avec des options spécifiques.
  * @param options - Les options de la requête HTTP, définies par l'interface IFetchFactory.
@@ -40,22 +41,25 @@ const FetchFactory = (options) => {
      * @param data - Les données à envoyer avec la requête (facultatif).
      * @returns Une promesse qui résout avec les données de la réponse.
      */
-    return (endpoint, data) => {
-        return new Promise((next, reject) => {
-            options.caller(endpoint, Object.assign({ method: options.method, headers: (options.headers ? options.headers : {}) }, (data ? {
-                body: (typeof data == 'string' ? data : JSON.stringify(data))
-            } : {})))
-                .then((result) => __awaiter(void 0, void 0, void 0, function* () {
-                let response = yield result.text();
-                try {
-                    next(JSON.parse(response));
-                }
-                catch (error) {
-                    next(response);
-                }
-            }))
-                .catch(reject);
-        });
+    return function (optionalHeaders) {
+        return (endpoint, data) => {
+            return new Promise((next, reject) => {
+                options.caller(endpoint, Object.assign({ method: options.method, headers: Object.assign(Object.assign({}, options.headers || {}), optionalHeaders || {}) }, (data ? {
+                    body: (typeof data == 'string' ? data : JSON.stringify(data))
+                } : {})))
+                    .then((result) => __awaiter(this, void 0, void 0, function* () {
+                    try {
+                        if (options.parser)
+                            Object.assign(result, { output_data: yield options.parser(result) });
+                    }
+                    catch (error) {
+                        console.error(error);
+                    }
+                    next(result);
+                }))
+                    .catch(reject);
+            });
+        };
     };
 };
 exports.FetchFactory = FetchFactory;
