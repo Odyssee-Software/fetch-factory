@@ -1,8 +1,12 @@
 {
-  "name": "fetch-factory",
-  "version": "1.0.0",
+  "name": "@Odyssee-Software/fetch-factory",
+  "version": "1.0.1-0",
   "description": "Le code fourni est écrit en TypeScript et définit une fonction **`FetchFactory`** qui crée une fonction de requête HTTP réutilisable. Permettez-moi de fournir un commentaire détaillé sur chaque partie du code :",
   "main": "dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Odyssee-Software/fetch-factory.git"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
