@@ -1,0 +1,154 @@
+name: Node.js CI
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  dev-to-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+          cache: 'npm'
+      
+      - name: Configure Git with token
+        run: |
+          git config --global user.email "MortallicaXxX@hotmail.com"
+          git config --global user.name "MortallicaXxX"
+          git config --global credential.helper store
+          echo "https://github.com:${{ secrets.PUBLISH_TOKEN }}" > ~/.git-credentials
+          chmod 0600 ~/.git-credentials
+
+      - name: Remove dist directory
+        run: rm -rf dist
+
+      - name: Add generated files
+        run: git add .
+
+      - name: Commit changess
+        run: |
+          git commit -m "Clean dist folder"
+          git push
+        continue-on-error: true
+      
+      - name: Fetch branchs information from remote
+        run: git fetch
+      
+      - name: Show Git status before push
+        run: git status
+
+      - name: Merge and push to test branch
+        run: |
+          git checkout test || git checkout -b test origin/test
+          git merge --no-ff --allow-unrelated-histories -X theirs dev
+          git push origin test
+
+      - name: Show Git log after push
+        run: git log -1 --oneline
+
+  test-to-prod:
+    runs-on: ubuntu-latest
+    needs: dev-to-test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+          cache: 'npm'
+
+      - name: Configure Git with token
+        run: |
+          git config --global user.email "MortallicaXxX@hotmail.com"
+          git config --global user.name "MortallicaXxX"
+          git config --global credential.helper store
+          echo "https://github.com:${{ secrets.PUBLISH_TOKEN }}" > ~/.git-credentials
+          chmod 0600 ~/.git-credentials
+
+      - name: Fetch branchs information from remote
+        run: git fetch
+
+      - name: Switch branch dev to test
+        run: git switch -c test origin/test
+
+      - name: Show Git status after switch
+        run: git status
+
+      - name: Pull branch from remote
+        run: git pull
+
+      - name: Add authentication token to ~/.npmrc
+        run: echo "@lithium-framework:registry=https://npm.pkg.github.com/" > .npmrc && echo "//npm.pkg.github.com/:_authToken=${{secrets.PUBLISH_TOKEN}}" >> .npmrc
+
+      - run: npm ci
+      - run: npx tsc
+
+      - name: Remove src directory
+        run: rm -rf src
+
+      - name: Add generated files
+        run: git add .
+
+      - name: Commit changes and push
+        run: git commit -m "Add generated files" && git push || echo "No changes to commit"
+        continue-on-error: true
+      
+      - name: Show Git status before push
+        run: git status
+
+      - name: Merge and push to prod branch
+        run: |
+          git checkout prod || git checkout -b prod origin/prod
+          git merge --no-ff --allow-unrelated-histories -X theirs test
+          git push origin prod
+
+  prod-publish:
+    runs-on: ubuntu-latest
+    needs: test-to-prod
+
+    steps:
+      - name: Checkout code
+        uses : actions/checkout@v2
+
+      - name: Setup Node.js
+        uses : actions/setup-node@v1
+        with :
+          node-version : 18
+          registry-url : https://npm.pkg.github.com
+          scope : '@lithium-framework'
+      
+      - name: Configure Git with token
+        run: |
+          git config --global user.email "MortallicaXxX@hotmail.com"
+          git config --global user.name "MortallicaXxX"
+          git config --global credential.helper store
+          echo "https://github.com:${{ secrets.PUBLISH_TOKEN }}" > ~/.git-credentials
+          chmod 0600 ~/.git-credentials
+      
+      - name: Add authentication token to ~/.npmrc
+        run: echo "@lithium-framework:registry=https://npm.pkg.github.com/" > .npmrc && echo "//npm.pkg.github.com/:_authToken=${{secrets.PUBLISH_TOKEN}}" >> .npmrc
+
+      - name: Fetch branchs information from remote
+        run: git fetch
+
+      - name: Switch branch prod
+        run: git switch -c test origin/prod
+
+      - name: Publish to GitHub Packages
+        run: npm publish || echo "::warning::Publish failed, please check the logs"
+
+      # Steps for building and publishing package for prod branch
