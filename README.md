@@ -4,7 +4,7 @@ Cette bibliothèque fournit une factory de requêtes HTTP réutilisables appelé
 
 ## **Fetch Factory**
 
-Fetch Factory permet de créer des fonctions de requête HTTP réutilisables avec des options spécifiques telles que la méthode et les en-têtes. Elle peut être utilisée pour effectuer des requêtes GET, POST, PUT, PATCH ou DELETE.
+Fetch Factory permet de créer des fonctions de requête HTTP réutilisables avec des options spécifiques telles que la méthode, les en-têtes et les validateurs. Elle peut être utilisée pour effectuer des requêtes GET, POST, PUT, PATCH ou DELETE.
 
 ### **Utilisation de Fetch Factory**
 
@@ -18,7 +18,16 @@ import { fetch, Response } from 'node-fetch';
 const MyGet = FetchFactory<Response>({
   caller: fetch,
   method: 'GET',
-  headers: {}
+  headers: {},
+  validator: async (response) => {
+    let result = await response.text();
+    try {
+      return JSON.parse(result);
+    } catch (error) {
+      console.error(error);
+    }
+    return result;
+  }
 });
 
 MyGet<InputData, OutputData>(/** ...optional headers... */)(/** endpoint */, /** body */)
@@ -34,14 +43,22 @@ import { FetchFactory } from '@Odyssee-Software/fetchFactory';
 const MyGet = FetchFactory<Response>({
   caller: fetch.bind(window),
   method: 'GET',
-  headers: {}
+  headers: {},
+  validator: async (response) => {
+    let result = await response.text();
+    try {
+      return JSON.parse(result);
+    } catch (error) {
+      console.error(error);
+    }
+    return result;
+  }
 });
 
 MyGet<InputData, OutputData>(/** ...optional headers... */)(/** endpoint */, /** body */)
 .then(({ output_data }) => {
   console.log({ output_data });
 });
-
 ```
 
 ### **Requêtes Prédéfinies**
@@ -57,9 +74,40 @@ const fetchData = async () => {
 };
 ```
 
+### **Validator**
+
+Le **validator** est une fonction asynchrone qui permet de traiter et valider les réponses des requêtes HTTP avant qu'elles ne soient renvoyées à l'utilisateur. Il peut être utilisé pour transformer les données de la réponse, vérifier leur intégrité, ou gérer des erreurs spécifiques. Lorsqu'un validateur est spécifié, son résultat est inscrit dans `output_data` de la réponse.
+
+### Exemple de Validator
+
+Supposons que vous souhaitiez valider et transformer les données de réponse JSON avant de les utiliser. Vous pouvez définir un validateur comme suit :
+
+```tsx
+const MyGet = FetchFactory<Response>({
+  caller: fetch,
+  method: 'GET',
+  headers: {},
+  validator: async (response) => {
+    let result = await response.json();
+    if (result.error) {
+      throw new Error(result.error);
+    }
+    return result.data;
+  }
+});
+
+MyGet<InputData, OutputData>(/** ...optional headers... */)(/** endpoint */, /** body */)
+.then(({ output_data }) => {
+  console.log({ output_data });
+})
+.catch((error) => {
+  console.error('Validation error:', error);
+});
+```
+
 ### **Caller**
 
-Le **caller** est la fonction responsable de l'exécution des requêtes HTTP. Fetch Factory permet de spécifier n'importe quel caller compatible, comme `fetch`, `axios`, ou toute autre librairie de requêtes HTTP. Cette flexibilité est intéressante car elle permet d'utiliser Fetch Factory dans différents environnements ou de remplacer facilement la technologie sous-jacente sans modifier les appels de fonction dans le code.
+Le **caller** est la fonction responsable de l'exécution des requêtes HTTP. Fetch Factory permet de spécifier n'importe quel caller compatible, comme `fetch`, `axios`, ou toute autre bibliothèque de requêtes HTTP. Cette flexibilité est intéressante car elle permet d'utiliser Fetch Factory dans différents environnements ou de remplacer facilement la technologie sous-jacente sans modifier les appels de fonction dans le code.
 
 ### **Exemple avec un caller non compatible Fetch**
 
@@ -89,14 +137,17 @@ import { FetchFactory } from '@Odyssee-Software/fetchFactory';
 const MyGet = FetchFactory({
   caller: fetchLikeCaller,
   method: 'GET',
-  headers: {}
+  headers: {},
+  validator: async (response) => {
+    let result = await response.json();
+    return result;
+  }
 });
 
 MyGet<InputData, OutputData>(/** ...optional headers... */)(/** endpoint */, /** body */)
 .then(({ output_data }) => {
   console.log({ output_data });
 });
-
 ```
 
 Dans cet exemple, `fetchLikeCaller` agit comme une interface pour `customCaller`, en transformant sa réponse pour qu'elle corresponde à la manière dont `fetch` retourne les résultats.
