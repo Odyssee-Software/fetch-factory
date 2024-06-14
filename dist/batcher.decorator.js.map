@@ -1,0 +1,1 @@
+{"version":3,"file":"batcher.decorator.js","sourceRoot":"","sources":["../src/batcher.decorator.ts"],"names":[],"mappings":";;;AAAA,SAAgB,WAAW,CAAE,WAAkB;IAC7C,OAAO,UAAU,MAAM;QAErB,MAAM,CAAC,SAAS,CAAC,WAAW,GAAG,WAAW,CAAC;QAE3C,OAAO,MAAM,CAAC;IAEhB,CAAC,CAAA;AACH,CAAC;AARD,kCAQC;AAMD,SAAgB,MAAM,CAAE,MAAwB;IAE9C,OAAO;IAEP,CAAC,CAAA;AAEH,CAAC;AAND,wBAMC"}

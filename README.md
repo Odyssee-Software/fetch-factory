@@ -13,13 +13,13 @@ Pour utiliser Fetch Factory, importez-la dans votre projet et créez des fonctio
 ```tsx
 // Exemple pour Node.js
 import { FetchFactory } from '@Odyssee-Software/fetchFactory';
-import { fetch, Response } from 'node-fetch';
+import fetch , { Response } from 'node-fetch';
 
 const MyGet = FetchFactory<Response>({
   caller: fetch,
   method: 'GET',
   headers: {},
-  validator: async (response) => {
+  parser: async (response) => {
     let result = await response.text();
     try {
       return JSON.parse(result);
@@ -44,7 +44,7 @@ const MyGet = FetchFactory<Response>({
   caller: fetch.bind(window),
   method: 'GET',
   headers: {},
-  validator: async (response) => {
+  parser: async (response) => {
     let result = await response.text();
     try {
       return JSON.parse(result);
@@ -61,12 +61,30 @@ MyGet<InputData, OutputData>(/** ...optional headers... */)(/** endpoint */, /**
 });
 ```
 
-### **Requêtes Prédéfinies**
+### RequestFactory
 
-Fetch Factory inclut également des fonctions de requête prédéfinies pour simplifier les opérations courantes :
+Fetch Factory inclut également une RequestFactory pour simplifier les opérations courantes de création, lecture, mise à jour et suppression (CRUD). RequestFactory génère des fonctions de requête prédéfinies comme Get, Post, Put, Patch et Delete.
 
 ```tsx
-import { Get, Post, Put, Patch, Delete } from '@Odyssee-Software/fetchFactory';
+import { CRUDFactory } from '@Odyssee-Software/fetchFactory';
+import fetch , { Response } from 'node-fetch';
+
+const { Get, Post, Put, Patch, Delete } = RequestFactory< Response >({
+  caller : fetch,
+  headers : {'content-type' : 'application/json'},
+  parser : async ( response ) => {
+    let result = await response.text()
+    try{
+      result = JSON.parse(result);
+    }
+    catch(error){
+      console.error(error);
+    }
+    finally{
+      return result;
+    }
+  }
+})
 
 const fetchData = async () => {
   const responseData = await Get(/** ...optional headers... */)('/api/data');
@@ -74,11 +92,11 @@ const fetchData = async () => {
 };
 ```
 
-### **Validator**
+### **Parser**
 
-Le **validator** est une fonction asynchrone qui permet de traiter et valider les réponses des requêtes HTTP avant qu'elles ne soient renvoyées à l'utilisateur. Il peut être utilisé pour transformer les données de la réponse, vérifier leur intégrité, ou gérer des erreurs spécifiques. Lorsqu'un validateur est spécifié, son résultat est inscrit dans `output_data` de la réponse.
+Le **parser** est une fonction asynchrone qui permet de traiter et valider les réponses des requêtes HTTP avant qu'elles ne soient renvoyées à l'utilisateur. Il peut être utilisé pour transformer les données de la réponse, vérifier leur intégrité, ou gérer des erreurs spécifiques. Lorsqu'un parser est spécifié, son résultat est inscrit dans `output_data` de la réponse.
 
-### Exemple de Validator
+### Exemple de Parser
 
 Supposons que vous souhaitiez valider et transformer les données de réponse JSON avant de les utiliser. Vous pouvez définir un validateur comme suit :
 
@@ -87,7 +105,7 @@ const MyGet = FetchFactory<Response>({
   caller: fetch,
   method: 'GET',
   headers: {},
-  validator: async (response) => {
+  parser: async (response) => {
     let result = await response.json();
     if (result.error) {
       throw new Error(result.error);
@@ -138,7 +156,7 @@ const MyGet = FetchFactory({
   caller: fetchLikeCaller,
   method: 'GET',
   headers: {},
-  validator: async (response) => {
+  parser: async (response) => {
     let result = await response.json();
     return result;
   }
