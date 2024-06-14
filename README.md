@@ -66,7 +66,7 @@ MyGet<InputData, OutputData>(/** ...optional headers... */)(/** endpoint */, /**
 Fetch Factory inclut également une RequestFactory pour simplifier les opérations courantes de création, lecture, mise à jour et suppression (CRUD). RequestFactory génère des fonctions de requête prédéfinies comme Get, Post, Put, Patch et Delete.
 
 ```tsx
-import { CRUDFactory } from '@Odyssee-Software/fetchFactory';
+import { RequestFactory } from '@Odyssee-Software/fetchFactory';
 import fetch , { Response } from 'node-fetch';
 
 const { Get, Post, Put, Patch, Delete } = RequestFactory< Response >({
